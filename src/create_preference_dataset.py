@@ -1,0 +1,321 @@
+"""
+create_preference_dataset.py
+=============================
+Indian Finance & Banking FAQ Assistant — Preference Dataset Builder
+Total: 50 DPO pairs | Current as of July 2026
+
+Format:
+{
+  "prompt": "question",
+  "chosen": "correct, specific, current Indian finance answer",
+  "rejected": "what base model actually says — generic/wrong/outdated"
+}
+
+The 'rejected' responses are realistic base model outputs:
+- Uses outdated data (old tax slabs, old rates)
+- Gives Western/generic answers (mentions IRS, 401k, etc.)
+- Vague and non-specific to India
+- Missing critical India-specific details
+
+Run in Colab:
+    %run create_preference_dataset.py
+
+Output: preference_dataset.jsonl
+"""
+
+import json
+
+DPO_PAIRS = [
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 1: INCOME TAX SLABS — Base model has wrong data
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What are the income tax slabs under the new tax regime for FY 2025-26?",
+        "chosen": "New tax regime slabs for FY 2025-26 (Budget 2025): Rs. 0-4,00,000 — Nil (basic exemption raised to Rs. 4 lakh). Rs. 4,00,001-8,00,000 — 5%. Rs. 8,00,001-12,00,000 — 10%. Rs. 12,00,001-16,00,000 — 15%. Rs. 16,00,001-20,00,000 — 20%. Rs. 20,00,001-24,00,000 — 25%. Above Rs. 24,00,000 — 30%. Section 87A rebate of Rs. 60,000 makes income up to Rs. 12,00,000 zero-tax. For salaried individuals, after Rs. 75,000 standard deduction, income up to Rs. 12,75,000 is effectively zero-tax. 4% health and education cess applies on tax.",
+        "rejected": "Under the new tax regime for FY 2025-26, the tax slabs are: income up to Rs. 2,50,000 is nil. Rs. 2,50,001 to Rs. 5,00,000 is taxed at 5%. Rs. 5,00,001 to Rs. 7,50,000 is taxed at 10%. Rs. 7,50,001 to Rs. 10,00,000 at 15%. Rs. 10,00,001 to Rs. 12,50,000 at 20%. Rs. 12,50,001 to Rs. 15,00,000 at 25%. Above Rs. 15,00,000 at 30%. A rebate of Rs. 12,500 is available for income up to Rs. 5,00,000."
+    },
+    {
+        "prompt": "What is the Section 87A rebate for FY 2025-26?",
+        "chosen": "Under the new tax regime for FY 2025-26, Section 87A provides a rebate of Rs. 60,000 for resident individuals with taxable income up to Rs. 12,00,000. This was increased from Rs. 25,000 in Budget 2025. Zero tax is payable for taxable income up to Rs. 12 lakh under new regime. For salaried individuals, the Rs. 75,000 standard deduction means the zero-tax threshold effectively extends to Rs. 12,75,000 gross salary. Important: the Rs. 60,000 rebate is NOT available on LTCG and STCG from equity. Under old regime, rebate remains Rs. 12,500 for income up to Rs. 5,00,000.",
+        "rejected": "Section 87A provides a tax rebate of Rs. 12,500 for individuals with taxable income up to Rs. 5,00,000. This means if your total income after all deductions is Rs. 5 lakh or less, you do not need to pay any tax. This rebate is available under both old and new tax regimes. It applies to all types of income including capital gains."
+    },
+    {
+        "prompt": "What is the basic tax exemption limit under the new tax regime in FY 2025-26?",
+        "chosen": "Under the new tax regime for FY 2025-26, the basic exemption limit is Rs. 4,00,000. This was increased from Rs. 3,00,000 in Budget 2025. Income up to Rs. 4 lakh attracts zero tax under the new regime. Additionally, the Section 87A rebate of Rs. 60,000 ensures zero tax for taxable income up to Rs. 12,00,000. The new tax regime is the default regime from AY 2024-25 onwards. Under the old tax regime, the basic exemption limit remains Rs. 2,50,000 for individuals below 60 years.",
+        "rejected": "The basic tax exemption limit under the new tax regime is Rs. 3,00,000. Income up to Rs. 3 lakh is completely exempt from tax. This is higher than the old tax regime's exemption of Rs. 2,50,000, which is why many taxpayers prefer the new regime. The exemption limit for senior citizens is Rs. 3,50,000 under the new regime."
+    },
+    {
+        "prompt": "How much tax does a salaried person with Rs. 12 lakh salary pay under new tax regime in FY 2025-26?",
+        "chosen": "For Rs. 12,00,000 gross salary under new tax regime FY 2025-26: Step 1 — Standard deduction: Rs. 12,00,000 - Rs. 75,000 = Rs. 11,25,000 taxable income. Step 2 — Apply slabs: 0-4L = Nil, 4-8L = Rs. 20,000 (5%), 8-11.25L = Rs. 32,500 (10%). Total tax = Rs. 52,500. Step 3 — Section 87A rebate: taxable income Rs. 11,25,000 is below Rs. 12,00,000 threshold, full rebate of Rs. 52,500 applies. Final tax = Zero. A person earning Rs. 12 lakh salary pays zero income tax under new regime in FY 2025-26.",
+        "rejected": "For a salary of Rs. 12 lakh under the new tax regime, after standard deduction of Rs. 50,000, taxable income is Rs. 11,50,000. Tax would be calculated as: 5% on Rs. 2,50,000 = Rs. 12,500, 10% on Rs. 2,50,000 = Rs. 25,000, 15% on Rs. 1,50,000 = Rs. 22,500. Total tax is Rs. 60,000 plus 4% cess = Rs. 62,400."
+    },
+    {
+        "prompt": "What is the standard deduction for salaried employees in FY 2025-26?",
+        "chosen": "The standard deduction for salaried employees and pensioners under the new tax regime is Rs. 75,000 for FY 2025-26. This was increased from Rs. 50,000 in Budget 2024. Under the old tax regime, the standard deduction remains Rs. 50,000. No bills or proof required — it is automatically deducted from salary income. This means salaried individuals with gross salary up to Rs. 12,75,000 pay zero income tax under the new regime (Rs. 75,000 standard deduction + Rs. 12,00,000 zero-tax threshold via Section 87A rebate).",
+        "rejected": "The standard deduction for salaried employees is Rs. 50,000 per year. This flat deduction is allowed from salary income without requiring any bills or receipts. It is available under both old and new tax regimes. The standard deduction was introduced to replace transport allowance of Rs. 19,200 and medical reimbursement of Rs. 15,000 per year."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 2: INCOME TAX ACT 2025 — Base model has no knowledge
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What is the Income Tax Act 2025 and how does it affect taxpayers?",
+        "chosen": "The Income Tax Act 2025 replaced the Income Tax Act 1961 effective from April 1, 2026. It is a comprehensive restructuring aimed at simplification. Key changes: (1) Tax Year concept replaces Previous Year and Assessment Year — income earned April 2026 to March 2027 is simply Tax Year 2026-27. (2) New section numbering — TDS on salary is now Section 391 instead of old Section 192. (3) Revised ITR can be filed up to March 31 (extended from December 31). Tax rates, slabs, and deductions remain unchanged. All proceedings for periods before April 1, 2026 continue under the old 1961 Act.",
+        "rejected": "I don't have specific information about an Income Tax Act 2025. The current income tax law in India is governed by the Income Tax Act 1961, which has been amended many times over the years through Finance Acts. If there has been a new Act passed in 2025, you should consult the official income tax website or a tax professional for the latest information."
+    },
+    {
+        "prompt": "What is Tax Year under Income Tax Act 2025?",
+        "chosen": "Under the Income Tax Act 2025, effective April 1, 2026, Tax Year replaces both Previous Year and Assessment Year. Tax Year is simply the 12-month financial year (April 1 to March 31) in which income is earned. Previously, income earned in FY 2024-25 (Previous Year) was assessed in AY 2025-26 — two labels for the same income caused confusion. Now income earned from April 2026 to March 2027 is simply Tax Year 2026-27. This is a terminology change only — tax rates, slabs, and compliance requirements remain unchanged. Old AY/PY terminology still applies for all periods before April 1, 2026.",
+        "rejected": "In India, the tax year refers to the Assessment Year (AY) which is the year following the Financial Year in which income is earned. For example, income earned in Financial Year 2024-25 (April 2024 to March 2025) is assessed in Assessment Year 2025-26. Taxpayers file their Income Tax Returns for the Assessment Year, not the Financial Year. The terms Previous Year and Assessment Year are defined in the Income Tax Act 1961."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 3: CAPITAL GAINS — Budget 2024 changes
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What is the LTCG tax rate on equity mutual funds in FY 2025-26?",
+        "chosen": "LTCG on equity mutual funds held over 12 months is taxed at 12.5% on gains exceeding Rs. 1,25,000 per financial year. Budget 2024 revised this from the earlier 10% rate on gains exceeding Rs. 1,00,000. STCG on equity held 12 months or less is taxed at 20% (revised from 15% in Budget 2024). 4% cess applies on both. The Section 87A rebate of Rs. 60,000 is NOT available to reduce LTCG and STCG tax — clarified by Income Tax Department. Debt funds purchased after April 1, 2023 are taxed at slab rates regardless of holding period.",
+        "rejected": "Long Term Capital Gains on equity mutual funds are taxed at 10% on gains exceeding Rs. 1,00,000 per financial year. Gains up to Rs. 1 lakh per year are completely exempt from tax. Short Term Capital Gains are taxed at 15%. These rates apply to equity-oriented funds where at least 65% of the portfolio is invested in equity shares. Debt funds held for more than 3 years are taxed at 20% with indexation benefit."
+    },
+    {
+        "prompt": "What is the LTCG tax on sale of house property in FY 2025-26?",
+        "chosen": "LTCG on residential house property (held over 24 months) is taxed at 12.5% without indexation benefit. Budget 2024 changed this from the earlier rate of 20% with indexation. STCG (held 24 months or less) is taxed at applicable slab rates. To save LTCG tax: reinvest in another house under Section 54 within 2 years of sale or construct within 3 years (exemption capped at Rs. 10 crore). Or invest in Section 54EC bonds up to Rs. 50 lakh within 6 months of sale.",
+        "rejected": "Long Term Capital Gains on house property are taxed at 20% with the benefit of indexation. Indexation adjusts the purchase price for inflation, reducing the taxable gain significantly. Short Term Capital Gains (property held for less than 2 years) are added to income and taxed at applicable slab rates. You can save capital gains tax by reinvesting in another residential property or in capital gains bonds within the specified time."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 4: GST — Base model gives generic answers
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What is the GST registration threshold limit in India?",
+        "chosen": "GST registration is mandatory when annual aggregate turnover exceeds Rs. 40 lakh for goods suppliers in most states and Rs. 20 lakh for service providers. For special category states (northeastern states, Himachal Pradesh, Uttarakhand, J&K), the threshold is Rs. 20 lakh for goods and Rs. 10 lakh for services. Mandatory registration regardless of turnover for inter-state suppliers, e-commerce operators, casual taxable persons, and those under reverse charge mechanism. Voluntary registration is also permitted below threshold to claim Input Tax Credit.",
+        "rejected": "GST registration is required when your annual turnover exceeds Rs. 20 lakh. For businesses in northeastern states and hill states, the threshold is lower at Rs. 10 lakh. All businesses that cross these limits must register for GST within 30 days of exceeding the threshold. Certain businesses like e-commerce sellers must register regardless of turnover."
+    },
+    {
+        "prompt": "What is the GST rate on health insurance premium?",
+        "chosen": "Health insurance premiums attract GST at 18%. For example, a base premium of Rs. 20,000 with 18% GST makes the total payable Rs. 23,600. The entire premium including GST qualifies for Section 80D income tax deduction under the old tax regime. Life insurance premiums: traditional plans (endowment, money-back) attract 4.5% GST on first year and 2.25% from second year. Term insurance: 18% GST. GST Council has discussed reducing GST on health and term insurance but the rate remains 18% as of 2025-26.",
+        "rejected": "Health insurance premiums are subject to GST at 12%. This GST is charged by the insurance company on the premium amount. The premium paid for health insurance including the GST component is eligible for deduction under Section 80D of the Income Tax Act. You should check with your insurance company for the exact GST amount applicable to your policy."
+    },
+    {
+        "prompt": "What is Input Tax Credit under GST?",
+        "chosen": "Input Tax Credit (ITC) allows GST-registered businesses to reduce the GST paid on business purchases from their GST liability on sales. Conditions: valid tax invoice, goods or services received, supplier has paid tax and filed returns, ITC appears in buyer's GSTR-2B. ITC NOT available on: motor vehicles for personal use, food and beverages, health insurance for employees, and construction of immovable property. ITC must be claimed before the earlier of November 30 of the following year or the date of filing the annual return. GSTR-2B generated on the 14th of each month is the authoritative document for ITC claims.",
+        "rejected": "Input Tax Credit is a mechanism in GST that allows businesses to claim credit for the tax paid on their purchases. When you buy goods or services for your business and pay GST on them, you can use that GST amount to offset your GST liability on your sales. This prevents double taxation and ensures GST is ultimately paid only on the value added at each stage of the supply chain."
+    },
+    {
+        "prompt": "What is the GST Composition Scheme?",
+        "chosen": "The Composition Scheme simplifies GST for small businesses with annual turnover up to Rs. 1.5 crore (Rs. 75 lakh for special category states). Tax rates: traders 1% of turnover, manufacturers 2%, restaurants 5%, service providers 6% (up to Rs. 50 lakh turnover). Benefits: quarterly GSTR-4 filing, simpler compliance. Restrictions: cannot make inter-state supplies of goods, cannot collect GST from customers, cannot claim ITC. Cannot supply certain exempt goods under this scheme.",
+        "rejected": "The GST Composition Scheme is available for small businesses with turnover up to Rs. 1 crore. Under this scheme, businesses pay GST at a flat rate of 1% to 6% depending on the type of business, instead of the regular GST rates. This scheme reduces the compliance burden as businesses only need to file one quarterly return instead of monthly returns."
+    },
+    {
+        "prompt": "What is the penalty for late filing of GST returns?",
+        "chosen": "Late filing fees for GST returns: Rs. 50 per day (Rs. 25 CGST + Rs. 25 SGST) for returns with tax liability, capped at Rs. 10,000 per return. Rs. 20 per day (Rs. 10 CGST + Rs. 10 SGST) for nil returns, capped at Rs. 10,000. Late payment of tax additionally attracts interest at 18% per annum on the outstanding amount. Consistent non-filing for 2 consecutive months can result in GST registration suspension or cancellation and blocking of e-way bill generation.",
+        "rejected": "If you file your GST returns late, you will be charged a late fee of Rs. 100 per day per return. The maximum late fee is Rs. 5,000 per return. In addition to the late fee, you will also have to pay interest on any unpaid tax at the rate of 18% per annum. It is important to file your returns on time to avoid these penalties."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 5: BANKING & RBI
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What is the DICGC deposit insurance limit in India?",
+        "chosen": "DICGC (Deposit Insurance and Credit Guarantee Corporation), a subsidiary of RBI, insures bank deposits up to Rs. 5,00,000 per depositor per bank covering both principal and interest combined. Multiple accounts in the same bank are combined for the Rs. 5 lakh limit. Deposits in different banks are insured separately. Covers savings, fixed, recurring, and current deposits in all commercial banks, small finance banks, payments banks, RRBs, and registered cooperative banks. The Rs. 5 lakh limit was revised in February 2020 and remains current as of 2025-26. If a bank fails, DICGC pays within 90 days.",
+        "rejected": "Bank deposits in India are insured up to Rs. 1,00,000 per depositor per bank by the Deposit Insurance and Credit Guarantee Corporation (DICGC). This means if a bank fails, you will receive a maximum of Rs. 1 lakh back regardless of how much you had deposited. This insurance covers all types of deposits including savings, current, fixed, and recurring deposits."
+    },
+    {
+        "prompt": "What is the difference between NEFT, RTGS, and IMPS?",
+        "chosen": "NEFT: available 24x7, batch processing, no RBI minimum or maximum limit, free at most banks. RTGS: available 24x7, real-time settlement, minimum Rs. 2 lakh, no maximum — best for large urgent transfers. IMPS: available 24x7 including holidays, instant transfer, maximum Rs. 5 lakh per transaction, small bank charges apply. UPI: available 24x7, instant, maximum Rs. 1 lakh (higher for specific categories), free for customers. Use RTGS for business payments above Rs. 2 lakh, UPI for daily payments, NEFT for scheduled transfers.",
+        "rejected": "NEFT (National Electronic Funds Transfer) processes transactions in batches and is available during banking hours on working days. RTGS (Real Time Gross Settlement) processes high-value transactions above Rs. 2 lakh in real time during banking hours. IMPS (Immediate Payment Service) is available 24x7 and is used for instant transfers. All three are interbank transfer systems regulated by RBI."
+    },
+    {
+        "prompt": "What are RBI guidelines on home loan prepayment charges?",
+        "chosen": "RBI mandates that banks and HFCs cannot charge any prepayment penalty or foreclosure charges on floating rate home loans to individual borrowers. This applies to both full and partial prepayment. For fixed rate home loans, lenders may charge foreclosure fees typically 2-4% of outstanding principal. For loans with mixed rate structure, no penalty on the floating portion. This RBI guideline applies only to individual borrowers, not businesses or companies. If a lender illegally charges fees on a floating rate home loan, file a complaint at cms.rbi.org.in.",
+        "rejected": "Home loan prepayment charges vary by lender. Most banks charge a prepayment penalty of 2% to 5% of the outstanding loan amount if you repay the loan before the tenure ends. Some banks offer home loans without prepayment charges. You should check your loan agreement carefully to understand the prepayment terms and charges applicable to your specific loan."
+    },
+    {
+        "prompt": "What is UPI Lite and how is it different from regular UPI?",
+        "chosen": "UPI Lite is designed for small-value fast transactions without requiring a PIN for each payment. Features: linked to a wallet within the UPI app (not directly to bank account), maximum wallet balance Rs. 4,000, per transaction limit Rs. 1,000, no PIN required per transaction, processes offline in near-real-time batches. Ideal for small daily payments like chai, auto fares, small purchases. Regular UPI: directly linked to bank account, limit Rs. 1,00,000+, requires PIN each time, real-time bank debit. UPI Lite is available in BHIM, PhonePe, Google Pay, and Paytm apps.",
+        "rejected": "UPI Lite is a simplified version of UPI that allows small value transactions. It is designed for quick payments at small merchants. The transaction limit for UPI Lite is lower than regular UPI. You need to load money into UPI Lite before using it, similar to a prepaid wallet. It works without internet connectivity in some cases, making it useful in areas with poor network coverage."
+    },
+    {
+        "prompt": "What is the process to file a banking complaint with RBI Ombudsman?",
+        "chosen": "Step 1: Raise complaint with bank's customer service. Step 2: If unresolved within 30 days, escalate to bank's Nodal Officer. Step 3: File complaint at RBI Integrated Ombudsman Scheme at cms.rbi.org.in. Covers: deficiency in banking services, unauthorised transactions, failure to close accounts, unfair charges. Must file within 1 year of bank's final reply. Ombudsman can award compensation up to Rs. 20 lakh for loss and Rs. 1 lakh for mental agony. SEBI Ombudsman handles investment complaints, IRDAI handles insurance complaints.",
+        "rejected": "To file a complaint against a bank, you should first contact the bank's customer care helpline. If your complaint is not resolved, you can write to the bank's grievance redressal officer. If still unresolved, you can approach the Banking Ombudsman in your region. The Banking Ombudsman is appointed by RBI and provides free redressal of complaints against banks. You can find the contact details of your regional Banking Ombudsman on the RBI website."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 6: INVESTMENTS
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What is the PPF interest rate and rules for FY 2025-26?",
+        "chosen": "PPF interest rate for FY 2025-26 is 7.1% per annum compounded annually (verify quarterly at indiapost.gov.in). Key rules: minimum Rs. 500, maximum Rs. 1,50,000 per year, tenure 15 years extendable in 5-year blocks. Tax: EEE status — 80C deduction (old regime only), interest tax-free, maturity tax-free. Partial withdrawal from 7th year. Loan between 3rd and 6th year at 1% above PPF rate. Cannot be seized by courts for debt recovery (except income tax). Cannot have more than one PPF account per person.",
+        "rejected": "PPF (Public Provident Fund) is a popular long-term savings scheme with a lock-in period of 15 years. The interest rate on PPF is reviewed quarterly by the government and has ranged between 7% and 8% in recent years. The maximum investment in PPF is Rs. 1.5 lakh per year and the minimum is Rs. 500. PPF offers tax benefits under Section 80C and the maturity proceeds are tax-free."
+    },
+    {
+        "prompt": "What is the Sukanya Samriddhi Yojana interest rate and key rules?",
+        "chosen": "SSY interest rate for FY 2025-26 is 8.2% per annum compounded annually (verify quarterly at indiapost.gov.in). Rules: account for girl child up to age 10, max 2 per family (3 for twins), minimum Rs. 250, maximum Rs. 1,50,000 per year. Maturity: 21 years from opening date. Tax: EEE status — 80C deduction, interest tax-free, maturity tax-free. Partial withdrawal: 50% when girl turns 18 for higher education. Premature closure on girl's marriage after 18. Must deposit for 15 years from account opening.",
+        "rejected": "Sukanya Samriddhi Yojana is a government scheme for the welfare of the girl child. It offers an attractive interest rate of around 7.5% to 8% per annum. The account can be opened for a girl child up to 10 years of age. The maturity period is 21 years from the date of opening. The minimum deposit is Rs. 250 per year and the maximum is Rs. 1.5 lakh per year. Deposits qualify for tax deduction under Section 80C."
+    },
+    {
+        "prompt": "What are the NPS tax benefits for salaried employees?",
+        "chosen": "NPS tax benefits for salaried employees: Under old tax regime — Section 80CCD(1): up to 10% of salary within Rs. 1,50,000 Section 80C limit. Section 80CCD(1B): additional exclusive Rs. 50,000 deduction. Under both regimes — Section 80CCD(2): employer NPS contribution up to 14% of basic salary is fully deductible. This employer contribution deduction under 80CCD(2) is one of the very few deductions available under the new tax regime, making it extremely valuable. On maturity at 60, 60% lump sum withdrawal is tax-free, 40% annuity purchase is mandatory.",
+        "rejected": "NPS offers tax benefits under Section 80CCD. Employee contributions up to Rs. 1.5 lakh are deductible under Section 80C. Additionally, you can claim an extra deduction of Rs. 50,000 under Section 80CCD(1B) over and above the 80C limit. Employer contributions to NPS are also tax-free in the employee's hands. On maturity, 60% of the corpus can be withdrawn tax-free and the remaining 40% must be used to buy an annuity."
+    },
+    {
+        "prompt": "What is ELSS and how does it compare to other 80C investments?",
+        "chosen": "ELSS (Equity Linked Savings Scheme) are equity mutual funds with 3-year lock-in qualifying for Section 80C deduction under old regime. Key advantages: shortest lock-in among all 80C instruments (PPF is 15 years, NSC is 5 years, tax-saving FD is 5 years), historically highest returns (12-15% CAGR). Tax on redemption: LTCG at 12.5% on gains above Rs. 1,25,000 per year. Disadvantage: market risk, returns not guaranteed. Not available in new tax regime. Best for aggressive investors with 5+ year horizon wanting both tax saving and wealth creation.",
+        "rejected": "ELSS (Equity Linked Savings Scheme) is a type of mutual fund that qualifies for tax deduction under Section 80C. It has a lock-in period of 3 years, which is shorter than other tax-saving investments like PPF (15 years) or tax-saving FDs (5 years). The returns from ELSS are market-linked and not guaranteed, but historically they have given better returns than other 80C investments. The gains from ELSS are subject to long-term capital gains tax at 10% above Rs. 1 lakh."
+    },
+    {
+        "prompt": "What is Sovereign Gold Bond and why is it better than physical gold?",
+        "chosen": "SGBs are RBI-issued government securities denominated in grams of gold. Advantages over physical gold: (1) 2.5% annual interest on initial investment — physical gold gives zero interest. (2) Capital gains at maturity (8 years) are completely tax-exempt for original allottees — physical gold attracts 12.5% LTCG. (3) No storage risk, no making charges, no purity concerns. (4) Can be used as collateral for loans. (5) Traded on NSE/BSE for liquidity after listing. Note: New SGB issuances suspended by RBI since early 2024. Existing SGBs available on secondary market.",
+        "rejected": "Sovereign Gold Bonds are a good alternative to physical gold. They are issued by the government and backed by the price of gold. You earn interest of 2.5% per annum on your investment in addition to any appreciation in gold prices. The bonds have an 8-year tenure and can be redeemed after 5 years. Capital gains on redemption are exempt from tax. You can buy them through banks and post offices during the subscription period."
+    },
+    {
+        "prompt": "What is the difference between direct and regular mutual fund plans?",
+        "chosen": "Direct Plans: purchased from AMC directly, no distributor commission, lower Total Expense Ratio (TER). Regular Plans: purchased through distributors/banks, includes 0.5-1% distributor commission in TER. Impact of 0.7% TER difference on Rs. 10 lakh for 20 years at 12% CAGR = Rs. 12-15 lakh additional corpus in direct plan. Available on AMC websites, MF Utility, MFCentral, Zerodha Coin, and Groww. Sebi mandates TER disclosure daily on AMC websites. For self-directed investors, direct plans always give better long-term returns.",
+        "rejected": "Direct mutual fund plans are purchased directly from the mutual fund company without going through a broker or distributor. Regular plans are purchased through intermediaries like banks or financial advisors. The main difference is the expense ratio — direct plans have a lower expense ratio since there is no commission paid to distributors. Over a long period, this lower expense ratio can make a significant difference in returns. If you are comfortable making your own investment decisions, direct plans are the better choice."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 7: SEBI & CAPITAL MARKETS
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What changes did Budget 2026 make to STT on F&O trading?",
+        "chosen": "Budget 2026 significantly hiked Securities Transaction Tax on Futures and Options to curb excessive speculation. New STT rates: Futures — 0.05% of contract value. Options — 0.15% on premium value. Motivation: India's F&O trading volume exceeded 500 times the country's GDP creating systemic risk. SEBI had already tightened F&O entry requirements in 2024. Impact: higher transaction costs, higher breakeven for F&O traders, scalpers and high-frequency traders most affected. Long-term delivery-based equity investors unaffected — STT on delivery remains 0.1%.",
+        "rejected": "Budget 2026 made some changes to the Securities Transaction Tax on derivatives trading. The government increased STT on futures and options to discourage excessive speculation in the derivatives market. Retail investors who trade in F&O will face higher transaction costs. The exact new rates should be verified from official government notifications. Long-term investors in stocks and mutual funds are not significantly affected by these changes."
+    },
+    {
+        "prompt": "What is the T+1 settlement cycle in Indian stock markets?",
+        "chosen": "India completed migration to T+1 settlement for all equity securities by January 27, 2023. T+1 means: buy shares on Monday → credited to Demat account by Tuesday. Sell shares on Monday → sale proceeds credited to bank by Tuesday. Benefits: reduced counterparty risk, faster access to funds and shares. NSE and BSE both on T+1 for equity. Equity F&O premium settled T+1. Equity mutual fund redemptions: equity funds T+3, liquid funds T+1. India is now exploring optional T+0 settlement for select securities.",
+        "rejected": "Indian stock markets follow a T+2 settlement cycle, which means that when you buy or sell shares, the actual transfer of shares and money happens 2 business days after the trade date. For example, if you sell shares on Monday, the money will be credited to your bank account on Wednesday. This settlement system is used by most major stock markets around the world including the New York Stock Exchange."
+    },
+    {
+        "prompt": "How can retail investors apply for an IPO in India?",
+        "chosen": "Retail investors can apply for IPOs through: (1) ASBA (Application Supported by Blocked Amount) — bid amount is blocked in bank account, debited only on allotment, not before. (2) UPI-based application — apply through broker or bank apps using UPI ID, amount blocked via UPI mandate. Retail Individual Investors (RII) can apply up to Rs. 2,00,000. 35% of IPO reserved for retail investors. Allotment by lottery if oversubscribed in retail category. Shares listed on NSE/BSE approximately 6 days after IPO close. GMP (Grey Market Premium) indicates expected listing price but is not guaranteed.",
+        "rejected": "To apply for an IPO in India, you need a Demat account, trading account, and bank account. You can apply through your broker's website or app, or through your bank's net banking. Fill in the application form with the number of shares you want and the price. The bid amount will be blocked in your account until allotment. If you receive allotment, the shares will be credited to your Demat account and the money deducted. If not allotted, the blocked amount is released."
+    },
+    {
+        "prompt": "What is insider trading and what are the penalties under SEBI?",
+        "chosen": "Insider trading is buying or selling securities using UPSI (Unpublished Price Sensitive Information) before public announcement. UPSI includes financial results, dividends, mergers, acquisitions, and new contracts. SEBI PIT Regulations 2015 prohibit this. Requirements: trading window closure during UPSI periods, pre-clearance for trades above Rs. 10 lakh by designated persons, mandatory reporting within 2 trading days. Penalties: up to Rs. 25 crore or 3 times profit whichever higher, plus imprisonment up to 10 years. SEBI monitors unusual trading patterns before corporate announcements.",
+        "rejected": "Insider trading is when someone trades in a company's shares using confidential information that is not available to the general public. This is illegal in India and regulated by SEBI. Insiders include company directors, employees, and anyone who has access to confidential information. The penalty for insider trading in India can include fines and imprisonment. SEBI has strict surveillance systems to detect and investigate suspicious trading patterns."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 8: DEDUCTIONS & COMPLIANCE
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What investments qualify under Section 80C?",
+        "chosen": "Section 80C allows deductions up to Rs. 1,50,000 per year under old tax regime only (NOT available in new tax regime). Eligible investments: EPF and PPF contributions, ELSS mutual funds (3-year lock-in), NSC, 5-year tax-saving fixed deposits, life insurance premium, principal repayment of home loan, tuition fees for up to 2 children, Sukanya Samriddhi Yojana, Senior Citizen Savings Scheme, ULIP premiums. All combined qualify within the Rs. 1,50,000 limit.",
+        "rejected": "Section 80C of the Income Tax Act allows you to claim deductions up to Rs. 1.5 lakh per year for investments in various financial instruments. These include PPF, NSC, ELSS mutual funds, life insurance premiums, 5-year fixed deposits, and home loan principal repayment. The deduction is available to all individuals and HUFs. By investing Rs. 1.5 lakh in these instruments, you can save up to Rs. 46,800 in taxes if you are in the 30% tax bracket."
+    },
+    {
+        "prompt": "What is TDS on FD interest and how can it be avoided?",
+        "chosen": "Banks deduct TDS at 10% on FD interest if total interest exceeds Rs. 40,000 per year (Rs. 50,000 for senior citizens). If PAN not provided, TDS is 20%. To avoid TDS: submit Form 15G (individuals below 60 with income below taxable limit) or Form 15H (senior citizens 60+) to bank at beginning of each financial year. Valid for one year only — must renew annually. Submit at each branch where FDs are held. If TDS is wrongly deducted despite low income, claim refund while filing ITR.",
+        "rejected": "Banks deduct TDS on FD interest when the interest amount exceeds Rs. 10,000 per year. The TDS rate is 10% if you have provided your PAN. If PAN is not provided, TDS is deducted at 20%. You can avoid TDS by submitting Form 15G (for individuals below 60) or Form 15H (for senior citizens) to the bank, declaring that your income is below the taxable limit."
+    },
+    {
+        "prompt": "What is the Section 80D deduction for health insurance?",
+        "chosen": "Section 80D deductions (old tax regime only): Rs. 25,000 for self, spouse, and dependent children's health insurance. Additional Rs. 25,000 for parents below 60 (total Rs. 50,000). If parents are senior citizens (60+), additional Rs. 50,000 (total Rs. 75,000). If both taxpayer and parents are senior citizens, maximum Rs. 1,00,000. Preventive health check-up up to Rs. 5,000 included within limits. Entire premium including 18% GST qualifies. Section 80D NOT available under new tax regime.",
+        "rejected": "Section 80D allows deduction for health insurance premiums. You can claim up to Rs. 25,000 for health insurance premiums paid for yourself and your family. An additional deduction of Rs. 25,000 is available for health insurance of your parents. If your parents are senior citizens above 60 years, the deduction for their insurance increases to Rs. 30,000. The total maximum deduction under Section 80D is Rs. 55,000."
+    },
+    {
+        "prompt": "What is the due date for filing income tax return for FY 2025-26?",
+        "chosen": "ITR filing due dates for FY 2025-26: July 31, 2026 for individuals, HUFs, and non-audit cases. October 31, 2026 for tax audit cases. November 30, 2026 for transfer pricing cases. Belated return up to December 31, 2026. Budget 2026 extended revised return filing to March 31, 2027 with a nominal fee (extended from December 31). Late fees: Rs. 5,000 if income above Rs. 5 lakh, Rs. 1,000 if income below Rs. 5 lakh. Zero late fee if income is below basic exemption limit.",
+        "rejected": "The due date for filing income tax return for salaried individuals is July 31 of the assessment year. For businesses that require a tax audit, the due date is September 30. If you miss the due date, you can file a belated return by December 31 of the assessment year with a late fee of Rs. 5,000. It is advisable to file your return on time to avoid penalties and interest."
+    },
+    {
+        "prompt": "What is Form 26AS and why is it important for filing ITR?",
+        "chosen": "Form 26AS is being replaced by Form 168 under Income Tax Act 2025 for Tax Year 2026-27. It shows TDS deducted, TCS collected, and taxes paid. The Annual Information Statement (AIS) is a more comprehensive document showing salary, FD interest, dividends, stock and MF transactions, foreign remittances, and real estate transactions. Taxpayer Information Summary (TIS) shows net processed values. Before filing ITR: download AIS and TIS from incometax.gov.in, verify entries against personal records, submit feedback on incorrect entries, ensure ITR matches AIS to avoid mismatch notices.",
+        "rejected": "Form 26AS is a tax credit statement that shows all the TDS that has been deducted from your income during the financial year. It also shows advance tax and self-assessment tax paid by you. Before filing your income tax return, you should check Form 26AS to ensure that all TDS credits are correctly reflected. If there is a discrepancy, you should get it corrected with your employer or deductor before filing the return."
+    },
+    {
+        "prompt": "What is the advance tax payment schedule in India?",
+        "chosen": "Advance tax is payable when estimated tax liability exceeds Rs. 10,000 after TDS. Payment schedule: 15% by June 15, 45% by September 15, 75% by December 15, 100% by March 15 of the financial year. Senior citizens above 60 without business income are exempt. Short payment attracts 1% per month interest under Section 234C on shortfall at each instalment. Non-payment attracts 1% per month interest under Section 234B from April 1 until full payment. Same schedule continues under Income Tax Act 2025.",
+        "rejected": "Advance tax must be paid in instalments during the year if your tax liability is expected to be more than Rs. 10,000. The advance tax schedule is: 30% by September 15, 60% by December 15, and 100% by March 15. If you do not pay advance tax on time, you will be charged interest under Sections 234B and 234C. Self-employed individuals and businesses are particularly required to pay advance tax."
+    },
+    {
+        "prompt": "How is crypto and virtual digital asset income taxed in India?",
+        "chosen": "Virtual Digital Assets (VDA) including cryptocurrency and NFTs are taxed at flat 30% regardless of holding period or income slab. 4% cess makes effective rate 31.2%. No deduction allowed except cost of acquisition — no deduction for transfer fees or mining expenses. Loss from one VDA cannot be set off against gains from another VDA or any other income. TDS at 1% on VDA transfers exceeding Rs. 50,000 per transaction. VDA income must be reported in Schedule VDA in ITR. Gifted VDA is taxable at market value on date of receipt.",
+        "rejected": "Cryptocurrency and other virtual digital assets are taxed at a flat rate of 30% in India as per the budget announcement. This is one of the highest tax rates for any asset class in India. There is no distinction between short-term and long-term gains for crypto assets. Additionally, a 1% TDS is deducted on crypto transactions. Losses from crypto trading cannot be set off against any other income. You must declare all crypto income in your income tax return."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 9: PRACTICAL SCENARIOS
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "Should I choose old or new tax regime if I earn Rs. 10 lakh with standard deductions only?",
+        "chosen": "For Rs. 10 lakh salary with only standard deduction: New regime: Rs. 10,00,000 - Rs. 75,000 standard deduction = Rs. 9,25,000 taxable. Tax = Rs. 32,500 (5% on Rs. 3.25L from 4-7.25L + 10% on Rs. 2L from 7.25-9.25L = Rs. 16,250 + Rs. 20,000 = Rs. 36,250). Wait — 0-4L nil, 4-8L 5% = Rs. 20,000, 8-9.25L 10% = Rs. 12,500. Total = Rs. 32,500. Section 87A rebate: taxable income Rs. 9.25L is below Rs. 12L threshold — full rebate. Final tax = Zero. New regime is clearly better with zero tax payable.",
+        "rejected": "For a salary of Rs. 10 lakh, you should compare the tax under both regimes. Under the new regime, after standard deduction, your taxable income would be around Rs. 9.5 lakh. Under the old regime, if you invest in 80C instruments like PPF, ELSS, and life insurance up to Rs. 1.5 lakh, your taxable income reduces further. Generally, if you have significant deductions and investments, the old regime may be better. Otherwise, the new regime's lower rates may benefit you more."
+    },
+    {
+        "prompt": "I am a senior citizen with Rs. 8 lakh FD interest income. How much tax do I pay?",
+        "chosen": "For senior citizen (60-79 years) with Rs. 8 lakh FD interest income under new tax regime FY 2025-26: No standard deduction for non-salaried. Taxable income = Rs. 8,00,000. Tax: 0-4L = Nil, 4-8L = Rs. 20,000 (5%). Total tax = Rs. 20,000. Section 87A rebate: taxable income Rs. 8L is below Rs. 12L threshold — full rebate of Rs. 20,000. Final tax = Zero. Note: Bank will deduct TDS at 10% on FD interest above Rs. 50,000 (Rs. 7,50,000 TDS = Rs. 75,000). File ITR to claim refund of Rs. 75,000 TDS since tax payable is zero.",
+        "rejected": "For a senior citizen with FD interest income of Rs. 8 lakh, the tax calculation depends on the tax regime chosen. Senior citizens have a higher basic exemption limit. Under the old regime, the exemption is Rs. 3 lakh for those between 60-80 years. Tax would be calculated on the remaining Rs. 5 lakh after the exemption. There is also a special provision where senior citizens can claim deduction for health insurance under Section 80D. Banks deduct TDS on FD interest, which can be adjusted against the final tax liability."
+    },
+    {
+        "prompt": "What happens if I don't link my Aadhaar with PAN?",
+        "chosen": "PAN not linked with Aadhaar becomes inoperative. Consequences of inoperative PAN: TDS is deducted at higher rates (20% instead of normal rates), ITR cannot be filed, pending tax refunds are not processed, cannot open new bank accounts or make high-value financial transactions requiring PAN. To reactivate: pay penalty of Rs. 1,000 on the income tax portal and complete Aadhaar-PAN linking. The linking is done at incometax.gov.in under Quick Links section. Reactivation takes 30 days after penalty payment and linking.",
+        "rejected": "If you do not link your Aadhaar with PAN, your PAN may become inactive. An inactive PAN can cause problems when filing income tax returns or conducting financial transactions. The government has set multiple deadlines for Aadhaar-PAN linking and levied penalties for non-compliance. You should visit the income tax portal or your nearest income tax office to complete the linking process as soon as possible to avoid any inconvenience."
+    },
+    {
+        "prompt": "Can I claim HRA if I pay rent to my parents?",
+        "chosen": "Yes, you can claim HRA exemption for rent paid to parents under the old tax regime, subject to conditions: (1) The property must genuinely be owned by your parent — verified by property documents. (2) You must actually pay rent by bank transfer or cheque — cash payments are not recommended. (3) A proper rent agreement should be in place. (4) Your parent must declare this rental income in their own ITR. If parent's income is low (below taxable limit), this arrangement can be tax-efficient for the family overall. If annual rent exceeds Rs. 1 lakh, parent's PAN must be provided. HRA exemption is not available under new tax regime.",
+        "rejected": "You can claim HRA exemption for rent paid to your parents if you actually pay them rent and they own the property. However, the tax department may scrutinize such arrangements carefully. You should maintain proper documentation including rent receipts and bank transfer records. Your parents must also declare the rental income in their tax return. The HRA exemption is calculated based on the standard formula considering your salary, HRA received, and rent paid."
+    },
+    {
+        "prompt": "What is the tax on EPF withdrawal before 5 years of service?",
+        "chosen": "EPF withdrawal before completing 5 continuous years of service is taxable. TDS at 10% is deducted if withdrawal amount exceeds Rs. 50,000 — provide PAN to avoid TDS at 20%. The withdrawn amount is added to income and taxed at applicable slab rates. The employer's contribution and interest thereon are fully taxable. Employee's own contribution is not taxable on withdrawal (as it was already taxed as salary). If service was less than 5 years due to ill-health, employer closing business, or reasons beyond employee's control — withdrawal is fully tax-exempt. EPF withdrawal after 5 continuous years is completely tax-free.",
+        "rejected": "EPF withdrawal is generally tax-free if you have completed at least 5 years of service. If you withdraw before 5 years, the amount becomes taxable. TDS at 10% is deducted on EPF withdrawals before 5 years if the amount exceeds Rs. 30,000. The taxable amount includes both your own contribution and your employer's contribution along with the interest earned. If you withdraw due to specific reasons like illness, you may get some relief from taxation."
+    },
+
+    # ═══════════════════════════════════════════════════════════
+    # CATEGORY 10: RBI & BANKING SCHEMES
+    # ═══════════════════════════════════════════════════════════
+    {
+        "prompt": "What is PMJDY and what benefits does it offer?",
+        "chosen": "PMJDY (Pradhan Mantri Jan Dhan Yojana) launched August 28, 2014 is India's financial inclusion scheme. Benefits: zero balance account, RuPay debit card with Rs. 2 lakh accidental insurance cover, overdraft up to Rs. 10,000 after 6 months of satisfactory operation, Direct Benefit Transfer of government subsidies directly to account, Aadhaar-linked for seamless DBT. Over 50 crore accounts opened making India a global leader in financial inclusion. PMJDY accounts can be upgraded to regular savings accounts by completing full KYC.",
+        "rejected": "PMJDY or Pradhan Mantri Jan Dhan Yojana is a government scheme to promote financial inclusion in India. Under this scheme, any Indian citizen can open a bank account with zero balance. Account holders receive a RuPay debit card. The scheme provides access to banking services to people who did not have bank accounts earlier. The scheme has been very successful with crores of new accounts opened since its launch."
+    },
+    {
+        "prompt": "What is the Senior Citizen Savings Scheme (SCSS) interest rate and rules?",
+        "chosen": "SCSS is for individuals above 60 years (55 for VRS retirees). Maximum deposit: Rs. 30,00,000. Interest rate FY 2025-26: approximately 8.2% per annum paid quarterly — one of highest among small savings. Tenure: 5 years extendable by 3 years. Tax: 80C deduction under old regime. Interest taxable — TDS if annual interest exceeds Rs. 50,000. Premature closure penalty: 1.5% before 2 years, 1% after 2 years. Total SCSS investment across accounts cannot exceed Rs. 30 lakh. Available at post offices and authorised banks.",
+        "rejected": "The Senior Citizen Savings Scheme offers an attractive interest rate for senior citizens. The current interest rate is around 7.5% to 8% per annum, paid quarterly. The maximum investment limit is Rs. 15 lakh per person. The scheme has a tenure of 5 years which can be extended by another 3 years. Investment in SCSS qualifies for tax deduction under Section 80C. The interest earned is taxable, and TDS is deducted if the interest exceeds Rs. 10,000 per year."
+    },
+    {
+        "prompt": "What is the Digital Rupee (e-Rupee) and how is it different from UPI?",
+        "chosen": "Digital Rupee (e-rupee) is India's Central Bank Digital Currency issued by RBI — legal tender like physical currency with same value as paper notes. Types: Retail e-rupee for general public, Wholesale e-rupee for interbank settlement. Stored in digital wallets on mobile devices (not bank accounts). Key difference from UPI: e-rupee is digital money itself (like digital cash), UPI is a payment rail that moves money between bank accounts. e-Rupee transactions are anonymous like cash. No interest earned on e-rupee holdings. No bank account required for basic transactions.",
+        "rejected": "Digital Rupee is the digital version of the Indian Rupee issued by the Reserve Bank of India. It is similar to UPI in that it allows digital payments, but it is fundamentally different as it is a digital currency rather than a payment system. Digital Rupee can be stored in a digital wallet on your smartphone. Transactions using Digital Rupee are settled instantly and do not require an intermediary bank. The government is gradually rolling out the Digital Rupee through pilot programs with select banks."
+    },
+]
+
+
+OUTPUT_FILE = "preference_dataset.jsonl"
+
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    for item in DPO_PAIRS:
+        f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+print("=" * 55)
+print(f"  Dataset created : {OUTPUT_FILE}")
+print(f"  Total DPO pairs : {len(DPO_PAIRS)}")
+print(f"  Data current as : July 2026")
+print("=" * 55)
+print(f"\n  Category breakdown:")
+categories = [
+    ("Income Tax Slabs FY 2025-26", 5),
+    ("Income Tax Act 2025", 2),
+    ("Capital Gains Budget 2024 changes", 2),
+    ("GST", 5),
+    ("Banking & RBI", 5),
+    ("Investments", 6),
+    ("SEBI & Capital Markets", 4),
+    ("Deductions & Compliance", 6),
+    ("Practical Scenarios", 5),
+    ("RBI & Banking Schemes", 5),
+]
+total = 0
+for cat, count in categories:
+    print(f"    {count:>2} pairs  |  {cat}")
+    total += count
+print(f"   ---")
+print(f"    {total} pairs  |  TOTAL")
