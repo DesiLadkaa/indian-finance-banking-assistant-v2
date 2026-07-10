@@ -14,7 +14,7 @@ import torch
 from unsloth import FastLanguageModel
 
 # ── Configuration ──────────────────────────────────────────────────────────
-MODEL_NAME     = "DesiLadkaa/indian-finance-stage3-dpo-final"
+MODEL_NAME     = "DesiLadkaa/indian-finance-stage3-final-v2"
 MAX_SEQ_LENGTH = 512
 LOAD_IN_4BIT   = True
 
